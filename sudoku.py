@@ -1,5 +1,6 @@
 import sys
 import wx
+import wx.adv
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
@@ -111,9 +112,43 @@ class SudokuGenerator:
         else:
             return None
 
+class AboutDialog(wx.Dialog):
+    def __init__(self, parent):
+        super().__init__(parent, title="关于", size=(450, 380))
+
+        panel = wx.Panel(self)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+
+        # 使用富文本显示内容
+        info = (
+            "与我们家小朋友一起开发的一个数独游戏程序\n\n"
+            "该程序在 Windows11 上，Python 3.8.6 环境中测试通过\n\n"
+            "可点击 build.bat 一键发布，发布时需要使用 PyInstaller\n\n"
+            "发布后将 config.ini 文件一同拷贝到 exe 目录\n\n"
+            "可编辑 config.ini 文件的内容以编辑导出游戏题目的页眉页脚\n\n"
+            "明天就是儿童节\n\n"
+            "祝大朋友小朋友们玩得愉快，天天开心\n\n"
+            "2025年5月30日"
+        )
+
+        text = wx.StaticText(panel, label=info)
+        font = wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        text.SetFont(font)
+
+        vbox.Add(text, flag=wx.ALL | wx.EXPAND, border=20)
+        self.link = wx.adv.HyperlinkCtrl(panel, id=wx.ID_ANY, label="访问项目主页",
+                                    url="https://github.com/ibaibing/sudoku")
+        vbox.Add(self.link, flag=wx.ALIGN_CENTER | wx.ALL, border=10)
+        
+        # OK 按钮
+        ok_btn = wx.Button(panel, wx.ID_OK, label="确定")
+        vbox.Add(ok_btn, flag=wx.ALIGN_CENTER | wx.BOTTOM, border=10)
+
+        panel.SetSizer(vbox)
+
 class SudokuFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None, title="9x9 数独游戏-%s v%s" %(txt_foot, __version__), size=(450, 500))
+        super().__init__(None, title="9x9 数独游戏-%s" %txt_foot, size=(470, 510))
         # 加载 .ico 图标文件
         icon = wx.Icon()
         icon.CopyFromBitmap(sudoku.GetBitmap())
@@ -164,6 +199,10 @@ class SudokuFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.on_timer, self.timer)
         self.elapsed_label = wx.StaticText(panel, label="用时：0.000 秒")
         
+        help_bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP, wx.ART_TOOLBAR, (18, 18))
+        self.about_btn = wx.BitmapButton(panel, bitmap=help_bmp, style=wx.BU_NOTEXT|wx.NO_BORDER)
+        self.about_btn.SetToolTip("关于")
+        
         self.btn_export_cur = wx.Button(panel, label="导出当前题目与答案")
         self.btn_export_cur.Bind(wx.EVT_BUTTON, self.on_export_pdfs_cur)
 
@@ -178,24 +217,34 @@ class SudokuFrame(wx.Frame):
         vbox.Add(outer_sizer, 1, wx.ALL | wx.EXPAND, 10)
 
         hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        hbox1.Add(wx.StaticText(panel, label="难度选择:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-        hbox1.Add(self.difficulty_combo, 0, wx.RIGHT, 15)
-        hbox1.Add(self.btn_generate, 0, wx.RIGHT, 15)
-        hbox1.Add(self.btn_toggle_answer, 0, wx.RIGHT, 15)
-        hbox1.Add(self.elapsed_label, 0, wx.RIGHT, 15)
+        hbox1.Add(wx.StaticText(panel, label="难度:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        hbox1.Add(self.difficulty_combo, 0, wx.RIGHT, 10)
+        hbox1.Add(self.btn_generate, 0, wx.RIGHT, 10)
+        hbox1.Add(self.btn_toggle_answer, 0, wx.RIGHT, 10)
+        hbox1.Add(self.elapsed_label, 1, wx.ALIGN_CENTER_VERTICAL |wx.RIGHT, 10)
+        
+        hbox1.Add(self.about_btn, 0, wx.LEFT, 10)
+        
         vbox.Add(hbox1, 0, wx.LEFT | wx.BOTTOM, 10)
 
         hbox2 = wx.BoxSizer(wx.HORIZONTAL)
         
         hbox2.Add(self.btn_export_cur, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
         hbox2.Add(export_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
-        hbox2.Add(self.export_count, 0, wx.RIGHT, 15)
+        hbox2.Add(self.export_count, 0, wx.RIGHT, 10)
         hbox2.Add(self.btn_export, 0)
         vbox.Add(hbox2, 0, wx.LEFT | wx.BOTTOM, 10)
 
         panel.SetSizer(vbox)
 
         self.on_generate(None)
+        # 绑定事件
+        self.about_btn.Bind(wx.EVT_BUTTON, self.on_about)
+    
+    def on_about(self, event):
+        dialog = AboutDialog(self)
+        dialog.ShowModal()
+        dialog.Destroy()
 
     def _add_thick_borders(self, panel):
         # 使用一个覆盖层的画布绘制粗边框实现3x3宫格区分
