@@ -1,0 +1,1 @@
+pyinstaller -F -w --icon=sudoku.ico sudoku.py
